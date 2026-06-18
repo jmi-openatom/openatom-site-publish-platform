@@ -14,6 +14,7 @@ import {
 import AppShell from '@/components/AppShell.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import BaseModal from '@/components/BaseModal.vue'
+import SitePreviewImage from '@/components/SitePreviewImage.vue'
 import { api, errorMessage } from '@/lib/api'
 import { formatDate } from '@/lib/format'
 import { siteVisitUrl } from '@/lib/siteUrl'
@@ -137,7 +138,7 @@ onUnmounted(() => window.clearInterval(pollTimer))
 
       <div class="site-detail-grid">
         <section class="site-overview-panel">
-          <div class="detail-preview"><img :src="site.previewImage || '/previews/mirror.png'" :alt="`${site.name} 预览`" /></div>
+          <div class="detail-preview"><SitePreviewImage :site="site" :alt="`${site.name} 预览`" /></div>
           <div class="overview-facts">
             <div><span>当前状态</span><StatusBadge :status="site.status" /></div>
             <div><span>框架</span><strong>{{ site.framework }}</strong></div>

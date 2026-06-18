@@ -11,6 +11,7 @@ import {
 import type { Site } from '@/types'
 import { formatDate } from '@/lib/format'
 import { siteVisitUrl } from '@/lib/siteUrl'
+import SitePreviewImage from './SitePreviewImage.vue'
 import StatusBadge from './StatusBadge.vue'
 
 const props = defineProps<{ site: Site }>()
@@ -29,7 +30,7 @@ const addressLabel = computed(() => props.site.customDomain || props.site.defaul
 <template>
   <article class="site-card" @click="emit('open', site)">
     <div class="site-preview">
-      <img :src="site.previewImage || '/previews/mirror.png'" :alt="`${site.name} 网站预览`" />
+      <SitePreviewImage :site="site" :alt="`${site.name} 网站预览`" />
     </div>
     <div class="site-card__body">
       <div class="site-title-row">

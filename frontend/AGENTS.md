@@ -12,3 +12,5 @@ When implementing from a selected generated mock, treat that image as the source
 - Preserve the full-width top navigation, atmospheric raster header wash, two-column project gallery, and right-side deployment activity rail.
 - Use Chinese UI copy, restrained hairline borders, white/near-white surfaces, Phosphor icons, and the real project preview crops in `public/previews/`.
 - All visible controls should remain functional against the Spring Boot API; development login is only a local fallback for OAuth-independent validation.
+- The product has no team/workspace switching surface. Keep the top bar focused on projects, deployments, domains, search, and the current account.
+- Project preview images must be real screenshots captured only after the published page reports a complete document, loaded fonts, and complete images. Store slug-specific captures at `public/previews/sites/{slug}.png`; the UI falls back to the existing framework preview when no real capture exists.

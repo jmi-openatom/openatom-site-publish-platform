@@ -5,7 +5,6 @@ import LoginView from '@/views/LoginView.vue'
 import OAuthCallbackView from '@/views/OAuthCallbackView.vue'
 import DeploymentsView from '@/views/DeploymentsView.vue'
 import DomainsView from '@/views/DomainsView.vue'
-import TeamView from '@/views/TeamView.vue'
 import SiteDetailView from '@/views/SiteDetailView.vue'
 
 const router = createRouter({
@@ -16,8 +15,8 @@ const router = createRouter({
     { path: '/', name: 'dashboard', component: DashboardView },
     { path: '/deployments', name: 'deployments', component: DeploymentsView },
     { path: '/domains', name: 'domains', component: DomainsView },
-    { path: '/team', name: 'team', component: TeamView },
     { path: '/sites/:id', name: 'site-detail', component: SiteDetailView },
+    { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
 
@@ -33,4 +32,3 @@ router.beforeEach(async (to) => {
 })
 
 export default router
-

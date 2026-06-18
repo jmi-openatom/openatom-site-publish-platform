@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   PhBell,
-  PhBuildings,
   PhCaretDown,
   PhCommand,
   PhList,
@@ -34,7 +33,6 @@ const navigation = [
   { label: '项目', to: '/' },
   { label: '部署', to: '/deployments' },
   { label: '域名', to: '/domains' },
-  { label: '团队', to: '/team' },
 ]
 
 const initials = computed(() => auth.user.value?.displayName?.slice(0, 1) || 'S')
@@ -57,11 +55,6 @@ async function logout() {
           <span class="brand-icon"><PhStack :size="23" weight="fill" /></span>
           <strong>Site Publish</strong>
         </RouterLink>
-        <button class="workspace-switch">
-          <PhBuildings :size="17" />
-          <span>计算机协会</span>
-          <PhCaretDown :size="14" />
-        </button>
       </div>
 
       <nav class="topbar__nav" aria-label="主导航">
