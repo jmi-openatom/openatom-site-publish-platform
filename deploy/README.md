@@ -60,6 +60,15 @@ INGRESS_MODE=caddy
 Caddy 将占用 `80/443` 并提供按需 HTTPS。服务器防火墙和云安全组必须开放
 TCP `80/443` 与 UDP `443`。
 
+这是平台“验证域名后自动绑定并申请 SSL”的推荐且完整模式。域名验证通过后，
+后端会通过内部 TLS 握手触发 Caddy 签发证书；申请状态会显示在域名管理页面。
+证书由 Caddy 保存到 `caddy_data` volume，并自动续期。
+
+若服务器当前由宝塔 Nginx 占用 `80/443`，切换前必须先在宝塔停止这两个端口的
+监听，然后将 GitHub Environment 变量 `INGRESS_MODE` 改为 `caddy` 并重新部署。
+Caddy 会同时承接控制台域名、平台通配域名和已验证的用户自定义域名。不要让
+Nginx 与 Caddy 同时监听公网 `80/443`。
+
 ## 二、DNS
 
 假设控制台域名是 `publish.example.com`，站点基础域名是 `sites.example.com`：
@@ -130,6 +139,7 @@ Environment variables：
 | `BACKEND_BIND_PORT` | `28080` |
 | `SITE_PUBLIC_BASE_DOMAIN` | `sites.example.com` |
 | `SITE_CNAME_BASE_DOMAIN` | `sites.example.com` |
+| `AUTO_SSL_ENABLED` | 由部署脚本按入口模式自动设置 |
 | `MYSQL_DATABASE` | `site_publish` |
 | `MYSQL_USER` | `site_publish` |
 | `OIDC_ISSUER` | `https://oauth.jmi-openatom.cn/api/v1` |
@@ -144,6 +154,14 @@ Environment variables：
 2. `main` 分支通过所有检查后，通过 SSH 更新服务器代码。
 3. 工作流生成仅服务器可读的 `.env`，构建并更新容器。
 4. Caddy 模式检查公网 HTTPS；外部代理模式输出两个本机上游地址。
+
+在 Caddy 模式下，自定义域名流程为：
+
+1. 用户保存自定义域名，并按提示设置 CNAME。
+2. 用户点击“验证解析”。
+3. 后端激活域名并授权 Caddy 签发该域名证书。
+4. 后端自动触发 TLS 握手，页面显示“SSL 申请中”。
+5. 签发成功后页面显示“HTTPS 已启用”；失败任务每 5 分钟自动重试。
 
 生产 OAuth 回调地址会自动设置为：
 

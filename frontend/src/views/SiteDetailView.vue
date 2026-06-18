@@ -90,7 +90,7 @@ async function saveDomain() {
   if (!site.value || !domain.value) return
   try {
     await api.post(`/sites/${site.value.id}/domains`, { domain: domain.value })
-    toast.show('域名已保存，请完成 CNAME 配置')
+    toast.show('域名已保存，请完成 CNAME 验证，之后平台会自动申请 SSL')
     domainOpen.value = false
     await load()
   } catch (error) {
@@ -189,7 +189,7 @@ onUnmounted(() => window.clearInterval(pollTimer))
       </div>
     </template>
 
-    <BaseModal :open="domainOpen" title="配置自定义域名" description="保存后请配置 CNAME；使用宝塔或外部 Nginx 时，还需在入口代理中绑定该域名。" @close="domainOpen = false">
+    <BaseModal :open="domainOpen" title="配置自定义域名" description="保存并验证 CNAME 后，平台会自动绑定域名并申请 SSL 证书。" @close="domainOpen = false">
       <label class="field"><span>自定义域名</span><input v-model="domain" placeholder="www.example.com" /></label>
       <div class="cname-callout">
         <span>DNS 记录类型：CNAME</span>

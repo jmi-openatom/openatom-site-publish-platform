@@ -28,6 +28,8 @@ public class DomainService {
     private final SiteDomainMapper domainMapper;
     private final DnsResolver dnsResolver;
     private final DomainProperties domainProperties;
+    private final SslProvisioningService sslProvisioningService;
+    private final SslProvisioningDispatcher sslProvisioningDispatcher;
 
     public List<SiteDtos.DomainView> list() {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -71,6 +73,7 @@ public class DomainService {
         site.setCustomDomain(null);
         site.setUpdatedAt(LocalDateTime.now());
         siteMapper.updateById(site);
+        sslProvisioningService.reset(binding.getId());
         return toView(binding);
     }
 
@@ -104,11 +107,28 @@ public class DomainService {
             site.setUpdatedAt(LocalDateTime.now());
             siteMapper.updateById(site);
         }
+        sslProvisioningDispatcher.dispatchAfterCommit(binding.getId());
+        return toView(binding);
+    }
+
+    public SiteDtos.DomainView requestCertificate(Long id) {
+        Long userId = StpUtil.getLoginIdAsLong();
+        SiteDomain binding = domainMapper.selectOne(Wrappers.<SiteDomain>lambdaQuery()
+                .eq(SiteDomain::getId, id)
+                .eq(SiteDomain::getUserId, userId));
+        if (binding == null) {
+            throw new BusinessException("域名绑定不存在");
+        }
+        if (!"ACTIVE".equals(binding.getStatus())) {
+            throw new BusinessException("请先完成 CNAME 验证");
+        }
+        sslProvisioningDispatcher.dispatchAfterCommit(binding.getId());
         return toView(binding);
     }
 
     private SiteDtos.DomainView toView(SiteDomain domain) {
         Site site = siteMapper.selectById(domain.getSiteId());
+        SslProvisioningService.SslState sslState = sslProvisioningService.status(domain, site);
         return new SiteDtos.DomainView(
                 domain.getId(),
                 domain.getSiteId(),
@@ -118,6 +138,9 @@ public class DomainService {
                 domain.getStatus(),
                 domain.getVerificationToken(),
                 cnameTarget(domain.getSiteId()),
+                sslState.status(),
+                sslState.message(),
+                sslState.expiresAt(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt()
         );

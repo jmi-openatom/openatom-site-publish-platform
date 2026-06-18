@@ -40,7 +40,12 @@ public class DomainController {
 
     @PostMapping("/domains/{id}/verify")
     public ApiResponse<SiteDtos.DomainView> verify(@PathVariable Long id) {
-        return ApiResponse.ok(domainService.verify(id), "域名解析验证通过");
+        return ApiResponse.ok(domainService.verify(id), "域名解析验证通过，SSL 证书已进入自动申请队列");
+    }
+
+    @PostMapping("/domains/{id}/ssl")
+    public ApiResponse<SiteDtos.DomainView> requestCertificate(@PathVariable Long id) {
+        return ApiResponse.ok(domainService.requestCertificate(id), "SSL 证书申请已重新提交");
     }
 
     @GetMapping("/public/domains/allow")

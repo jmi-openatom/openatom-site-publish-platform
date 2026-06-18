@@ -32,6 +32,7 @@ public class SiteBuildWorker {
     private final DeploymentMapper deploymentMapper;
     private final SiteMapper siteMapper;
     private final StorageProperties properties;
+    private final SslProvisioningDispatcher sslProvisioningDispatcher;
 
     @Async
     public void build(Long deploymentId, Long siteId, Path sourcePath) {
@@ -78,6 +79,9 @@ public class SiteBuildWorker {
         site.setLatestDeploymentId(deployment.getId());
         site.setUpdatedAt(finished);
         siteMapper.updateById(site);
+        if ("SUCCESS".equals(deployment.getStatus())) {
+            sslProvisioningDispatcher.dispatchForSite(site.getId());
+        }
     }
 
     private Path prepareSource(Path sourcePath, Path workDirectory, StringBuilder buildLog) throws IOException {

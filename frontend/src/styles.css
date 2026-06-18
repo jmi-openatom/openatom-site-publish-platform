@@ -1321,12 +1321,19 @@ pre,
 
 .domain-row {
   display: grid;
-  grid-template-columns: 42px minmax(180px, 1fr) 100px minmax(260px, 1fr) auto;
+  grid-template-columns: 42px minmax(180px, 1fr) 132px minmax(260px, 1fr) minmax(120px, auto);
   gap: 16px;
   align-items: center;
   min-height: 88px;
   padding: 14px 22px;
   border-bottom: 1px solid var(--hairline);
+}
+
+.domain-statuses {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
 }
 
 .domain-icon,
@@ -1383,6 +1390,13 @@ pre,
   color: var(--green);
   font-size: 12px;
   font-weight: 550;
+}
+
+.ssl-hint {
+  max-width: 180px;
+  color: var(--mute);
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .team-grid {
@@ -1942,7 +1956,7 @@ pre,
   }
 
   .domain-row {
-    grid-template-columns: 42px minmax(160px, 1fr) 100px minmax(220px, 1fr);
+    grid-template-columns: 42px minmax(160px, 1fr) 132px minmax(220px, 1fr);
   }
 
   .domain-row > :last-child {

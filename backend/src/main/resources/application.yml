@@ -49,6 +49,14 @@ app:
   domains:
     public-base-domain: ${SITE_PUBLIC_BASE_DOMAIN:sites.localhost}
     cname-base-domain: ${SITE_CNAME_BASE_DOMAIN:sites.jmi-openatom.cn}
+  ssl:
+    enabled: ${AUTO_SSL_ENABLED:false}
+    proxy-host: ${SSL_PROXY_HOST:caddy}
+    proxy-port: ${SSL_PROXY_PORT:443}
+    connect-timeout-seconds: ${SSL_CONNECT_TIMEOUT_SECONDS:5}
+    handshake-timeout-seconds: ${SSL_HANDSHAKE_TIMEOUT_SECONDS:90}
+    initial-retry-delay-ms: ${SSL_INITIAL_RETRY_DELAY_MS:20000}
+    retry-delay-ms: ${SSL_RETRY_DELAY_MS:300000}
   storage:
     root: ${SITE_STORAGE_ROOT:./data/storage}
     run-frontend-builds: ${RUN_FRONTEND_BUILDS:true}

@@ -171,6 +171,13 @@ jobs:
               write_env OIDC_REDIRECT_URI "https://${APP_DOMAIN}/auth/callback"
               write_env SITE_PUBLIC_BASE_DOMAIN "$SITE_PUBLIC_BASE_DOMAIN"
               write_env SITE_CNAME_BASE_DOMAIN "$SITE_CNAME_BASE_DOMAIN"
+              if [ "$INGRESS_MODE" = "caddy" ]; then
+                write_env AUTO_SSL_ENABLED true
+              else
+                write_env AUTO_SSL_ENABLED false
+              fi
+              write_env SSL_PROXY_HOST caddy
+              write_env SSL_PROXY_PORT 443
               write_env RUN_FRONTEND_BUILDS true
               write_env BUILD_TIMEOUT_SECONDS "$BUILD_TIMEOUT_SECONDS"
               write_env TZ Asia/Shanghai
@@ -228,6 +235,9 @@ jobs:
             if [ "$INGRESS_MODE" = "external" ]; then
               check_bind_port backend "$BACKEND_BIND_PORT"
               check_bind_port frontend "$FRONTEND_BIND_PORT"
+            else
+              check_bind_port caddy 80
+              check_bind_port caddy 443
             fi
             compose pull mysql
             if [ "$INGRESS_MODE" = "caddy" ]; then

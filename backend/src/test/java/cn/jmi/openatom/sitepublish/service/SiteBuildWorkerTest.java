@@ -49,6 +49,11 @@ class SiteBuildWorkerTest {
 
     private SiteBuildWorker createWorker() {
         StorageProperties properties = new StorageProperties(storageRoot, false, 30);
-        return new SiteBuildWorker(deploymentMapper, siteMapper, properties);
+        return new SiteBuildWorker(
+                deploymentMapper,
+                siteMapper,
+                properties,
+                org.mockito.Mockito.mock(SslProvisioningDispatcher.class)
+        );
     }
 }

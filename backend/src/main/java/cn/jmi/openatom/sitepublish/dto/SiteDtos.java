@@ -78,6 +78,9 @@ public final class SiteDtos {
             String status,
             String verificationToken,
             String cnameTarget,
+            String sslStatus,
+            String sslMessage,
+            LocalDateTime sslExpiresAt,
             LocalDateTime createdAt,
             LocalDateTime updatedAt
     ) {

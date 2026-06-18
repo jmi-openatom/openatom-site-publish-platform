@@ -67,6 +67,9 @@ export interface DomainBinding {
   status: 'ACTIVE' | 'PENDING'
   verificationToken: string
   cnameTarget: string
+  sslStatus: 'SSL_WAITING_DNS' | 'SSL_WAITING_SITE' | 'SSL_PROVISIONING' | 'SSL_ACTIVE' | 'SSL_FAILED' | 'SSL_DISABLED'
+  sslMessage: string
+  sslExpiresAt?: string
   createdAt: string
   updatedAt: string
 }

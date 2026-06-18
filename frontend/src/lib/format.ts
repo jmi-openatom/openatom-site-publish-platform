@@ -26,6 +26,11 @@ export function statusLabel(status: string) {
     PENDING: '待配置',
     SUCCESS: '部署成功',
     ACTIVE: '已生效',
+    SSL_WAITING_DNS: 'SSL 待验证',
+    SSL_WAITING_SITE: 'SSL 等待上线',
+    SSL_PROVISIONING: 'SSL 申请中',
+    SSL_ACTIVE: 'HTTPS 已启用',
+    SSL_FAILED: 'SSL 申请失败',
+    SSL_DISABLED: '自动 SSL 未启用',
   }[status] || status
 }
-
