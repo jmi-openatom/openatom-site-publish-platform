@@ -35,11 +35,11 @@ docker compose ps
 默认使用 `INGRESS_MODE=external`。容器只监听本机：
 
 ```text
-控制台：127.0.0.1:18081
-发布站点：127.0.0.1:18080
+控制台：127.0.0.1:28081
+发布站点：127.0.0.1:28080
 ```
 
-在现有代理中将控制台域名反代到 `18081`，将站点通配域名反代到 `18080`，
+在现有代理中将控制台域名反代到 `28081`，将站点通配域名反代到 `28080`，
 并保留原始 `Host`。示例见
 [nginx-external.conf.example](nginx-external.conf.example)。
 
@@ -95,8 +95,8 @@ Environment variables：
 | --- | --- |
 | `APP_DOMAIN` | `publish.example.com` |
 | `INGRESS_MODE` | 已有 Nginx 填 `external`；独占端口填 `caddy` |
-| `FRONTEND_BIND_PORT` | `18081` |
-| `BACKEND_BIND_PORT` | `18080` |
+| `FRONTEND_BIND_PORT` | `28081` |
+| `BACKEND_BIND_PORT` | `28080` |
 | `SITE_PUBLIC_BASE_DOMAIN` | `sites.example.com` |
 | `SITE_CNAME_BASE_DOMAIN` | `sites.example.com` |
 | `MYSQL_DATABASE` | `site_publish` |

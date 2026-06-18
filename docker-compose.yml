@@ -50,7 +50,7 @@ services:
     volumes:
       - site_storage:/app/data/storage
     ports:
-      - "127.0.0.1:${BACKEND_BIND_PORT:-18080}:8080"
+      - "127.0.0.1:${BACKEND_BIND_PORT:-28080}:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -75,7 +75,7 @@ services:
         VITE_SITE_PORT: ""
     restart: unless-stopped
     ports:
-      - "127.0.0.1:${FRONTEND_BIND_PORT:-18081}:80"
+      - "127.0.0.1:${FRONTEND_BIND_PORT:-28081}:80"
     depends_on:
       backend:
         condition: service_healthy

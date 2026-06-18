@@ -80,8 +80,8 @@ jobs:
     env:
       DEPLOY_PATH: ${{ secrets.SERVER_PATH }}
       INGRESS_MODE: ${{ vars.INGRESS_MODE || 'external' }}
-      FRONTEND_BIND_PORT: ${{ vars.FRONTEND_BIND_PORT || '18081' }}
-      BACKEND_BIND_PORT: ${{ vars.BACKEND_BIND_PORT || '18080' }}
+      FRONTEND_BIND_PORT: ${{ vars.FRONTEND_BIND_PORT || '28081' }}
+      BACKEND_BIND_PORT: ${{ vars.BACKEND_BIND_PORT || '28080' }}
       APP_DOMAIN: ${{ vars.APP_DOMAIN }}
       ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
       MYSQL_DATABASE: ${{ vars.MYSQL_DATABASE || 'site_publish' }}
@@ -184,7 +184,51 @@ jobs:
               fi
             }
 
+            port_is_listening() {
+              port="$1"
+              if command -v ss >/dev/null 2>&1; then
+                ss -ltnH | awk '{print $4}' | grep -Eq "(^|:)$port$"
+              elif command -v lsof >/dev/null 2>&1; then
+                lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+              elif command -v netstat >/dev/null 2>&1; then
+                netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "(^|:)$port$"
+              else
+                return 1
+              fi
+            }
+
+            port_belongs_to_service() {
+              service="$1"
+              port="$2"
+              container_id=$(compose ps -q "$service" 2>/dev/null || true)
+              [ -n "$container_id" ] && docker port "$container_id" 2>/dev/null | grep -q ":$port$"
+            }
+
+            check_bind_port() {
+              service="$1"
+              port="$2"
+              if port_is_listening "$port" && ! port_belongs_to_service "$service" "$port"; then
+                case "$service" in
+                  backend) variable_name=BACKEND_BIND_PORT ;;
+                  frontend) variable_name=FRONTEND_BIND_PORT ;;
+                  *) variable_name=BIND_PORT ;;
+                esac
+                echo "Host port $port is already occupied by another process."
+                if command -v ss >/dev/null 2>&1; then
+                  ss -ltnp 2>/dev/null | grep -E "(^|:)$port[[:space:]]" || true
+                elif command -v lsof >/dev/null 2>&1; then
+                  lsof -nP -iTCP:"$port" -sTCP:LISTEN || true
+                fi
+                echo "Choose another GitHub Environment value for $variable_name."
+                exit 1
+              fi
+            }
+
             compose config --quiet
+            if [ "$INGRESS_MODE" = "external" ]; then
+              check_bind_port backend "$BACKEND_BIND_PORT"
+              check_bind_port frontend "$FRONTEND_BIND_PORT"
+            fi
             compose pull mysql
             if [ "$INGRESS_MODE" = "caddy" ]; then
               compose pull caddy
