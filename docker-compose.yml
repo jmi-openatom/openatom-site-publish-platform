@@ -44,7 +44,7 @@ services:
       SITE_PUBLIC_BASE_DOMAIN: ${SITE_PUBLIC_BASE_DOMAIN}
       SITE_CNAME_BASE_DOMAIN: ${SITE_CNAME_BASE_DOMAIN}
       AUTO_SSL_ENABLED: ${AUTO_SSL_ENABLED:-false}
-      SSL_PROXY_HOST: ${SSL_PROXY_HOST:-caddy}
+      SSL_PROXY_HOST: ${SSL_PROXY_HOST:-host.docker.internal}
       SSL_PROXY_PORT: ${SSL_PROXY_PORT:-443}
       SITE_STORAGE_ROOT: /app/data/storage
       RUN_FRONTEND_BUILDS: ${RUN_FRONTEND_BUILDS:-true}
@@ -52,6 +52,8 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
     volumes:
       - site_storage:/app/data/storage
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "127.0.0.1:${BACKEND_BIND_PORT:-28080}:8080"
     depends_on:

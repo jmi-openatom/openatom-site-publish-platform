@@ -51,7 +51,7 @@ app:
     cname-base-domain: ${SITE_CNAME_BASE_DOMAIN:sites.jmi-openatom.cn}
   ssl:
     enabled: ${AUTO_SSL_ENABLED:false}
-    proxy-host: ${SSL_PROXY_HOST:caddy}
+    proxy-host: ${SSL_PROXY_HOST:host.docker.internal}
     proxy-port: ${SSL_PROXY_PORT:443}
     connect-timeout-seconds: ${SSL_CONNECT_TIMEOUT_SECONDS:5}
     handshake-timeout-seconds: ${SSL_HANDSHAKE_TIMEOUT_SECONDS:90}

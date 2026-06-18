@@ -176,7 +176,7 @@ jobs:
               else
                 write_env AUTO_SSL_ENABLED false
               fi
-              write_env SSL_PROXY_HOST caddy
+              write_env SSL_PROXY_HOST host.docker.internal
               write_env SSL_PROXY_PORT 443
               write_env RUN_FRONTEND_BUILDS true
               write_env BUILD_TIMEOUT_SECONDS "$BUILD_TIMEOUT_SECONDS"

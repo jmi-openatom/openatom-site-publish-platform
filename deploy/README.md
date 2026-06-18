@@ -68,6 +68,10 @@ TCP `80/443` 与 UDP `443`。
 后端会通过内部 TLS 握手触发 Caddy 签发证书；申请状态会显示在域名管理页面。
 证书由 Caddy 保存到 `caddy_data` volume，并自动续期。
 
+后端通过 `host.docker.internal:443` 探测宿主机上的 Caddy。Linux Docker Compose
+使用 `host-gateway` 自动建立该地址；不要再把 `SSL_PROXY_HOST` 设置为 `caddy`，
+因为 host 网络模式下 Caddy 不在应用的 bridge 网络中。
+
 若服务器当前由宝塔 Nginx 占用 `80/443`，切换前必须先在宝塔停止这两个端口的
 监听，然后将 GitHub Environment 变量 `INGRESS_MODE` 改为 `caddy` 并重新部署。
 Caddy 会同时承接控制台域名、平台通配域名和已验证的用户自定义域名。不要让
