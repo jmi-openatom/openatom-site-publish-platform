@@ -1,23 +1,18 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { PhArrowRight, PhCheckCircle, PhCode, PhGlobe, PhSpinnerGap, PhStack } from '@phosphor-icons/vue'
 import { useAuth } from '@/composables/useAuth'
 import { errorMessage } from '@/lib/api'
 import { useToast } from '@/composables/useToast'
 
 const auth = useAuth()
-const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const busy = ref(false)
 
 onMounted(async () => {
   await auth.initialize()
-  const redirect = Array.isArray(route.query.redirect) ? route.query.redirect[0] : route.query.redirect
-  if (typeof redirect === 'string' && await auth.resumeOAuthLogin(redirect)) {
-    busy.value = true
-  }
 })
 
 async function oauthLogin() {

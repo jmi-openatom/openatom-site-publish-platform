@@ -84,17 +84,6 @@ export function useAuth() {
     window.location.assign(centralLoginUrl(response.data.data.authorizeUrl, state.config.issuer))
   }
 
-  const resumeOAuthLogin = async (authorizeUrl: string) => {
-    if (!state.config) await initialize()
-    if (!state.config) return false
-    try {
-      window.location.replace(centralLoginUrl(authorizeUrl, state.config.issuer))
-      return true
-    } catch {
-      return false
-    }
-  }
-
   const finishOAuth = async (code: string, stateValue: string) => {
     if (stateValue !== sessionStorage.getItem('oauth_state')) {
       throw new Error('OAuth state 校验失败')
@@ -131,7 +120,6 @@ export function useAuth() {
     isAuthenticated: computed(() => Boolean(state.user && localStorage.getItem('site_publish_token'))),
     initialize,
     loginWithOAuth,
-    resumeOAuthLogin,
     finishOAuth,
     devLogin,
     logout,

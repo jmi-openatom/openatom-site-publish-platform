@@ -112,8 +112,8 @@ VITE_API_TARGET=http://127.0.0.1:18080 VITE_SITE_PORT=18080 npm run dev
 - 浏览器公开客户端不配置 `client_secret`，并使用 PKCE `S256`
 
 当前认证中心未登录时会把用户重定向到 `redirect_uri` 所属站点的
-`/login`。本项目会将该跳转兼容转发到
-`https://oauth.jmi-openatom.cn/login`，避免第三方应用登录页形成循环。
+`/login`。本项目会停留在登录页并等待用户重新发起登录，不会自动反跳授权地址，
+避免认证中心登录状态失效时形成重定向循环。
 
 主要环境变量见 [backend/.env.example](backend/.env.example)。
 
