@@ -38,6 +38,10 @@ public class SiteBuildWorker {
         LocalDateTime started = LocalDateTime.now();
         Deployment deployment = deploymentMapper.selectById(deploymentId);
         Site site = siteMapper.selectById(siteId);
+        if (deployment == null || site == null) {
+            log.warn("Skipping build because deployment {} or site {} no longer exists", deploymentId, siteId);
+            return;
+        }
         StringBuilder buildLog = new StringBuilder();
         Path workDirectory = properties.root().resolve("work").resolve(String.valueOf(deploymentId));
         Path outputDirectory = properties.root().resolve("published")
@@ -207,4 +211,3 @@ public class SiteBuildWorker {
         }
     }
 }
-

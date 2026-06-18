@@ -31,7 +31,7 @@ public class DeploymentService {
     private final SiteMapper siteMapper;
     private final SiteService siteService;
     private final StorageProperties storageProperties;
-    private final SiteBuildWorker buildWorker;
+    private final SiteBuildDispatcher buildDispatcher;
 
     public List<SiteDtos.DeploymentView> recent(Integer limit) {
         Long userId = StpUtil.getLoginIdAsLong();
@@ -123,7 +123,7 @@ public class DeploymentService {
         site.setLatestDeploymentId(deployment.getId());
         site.setUpdatedAt(LocalDateTime.now());
         siteMapper.updateById(site);
-        buildWorker.build(deployment.getId(), site.getId(), sourcePath.toAbsolutePath());
+        buildDispatcher.dispatchAfterCommit(deployment.getId(), site.getId(), sourcePath);
         return siteService.toDeploymentView(deployment, site);
     }
 
@@ -162,4 +162,3 @@ public class DeploymentService {
         return HexFormat.of().formatHex(bytes);
     }
 }
-
