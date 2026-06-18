@@ -189,7 +189,7 @@ onUnmounted(() => window.clearInterval(pollTimer))
       </div>
     </template>
 
-    <BaseModal :open="domainOpen" title="配置自定义域名" description="保存后请将 CNAME 指向平台提示的默认域名。" @close="domainOpen = false">
+    <BaseModal :open="domainOpen" title="配置自定义域名" description="保存后请配置 CNAME；使用宝塔或外部 Nginx 时，还需在入口代理中绑定该域名。" @close="domainOpen = false">
       <label class="field"><span>自定义域名</span><input v-model="domain" placeholder="www.example.com" /></label>
       <div class="cname-callout">
         <span>DNS 记录类型：CNAME</span>

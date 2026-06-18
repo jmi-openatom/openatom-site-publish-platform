@@ -31,7 +31,25 @@ server {
     }
 }
 
+# CNAME 不会改写浏览器发送的 Host。使用宝塔或共享 Nginx 时，每个自定义域名
+# 仍需加入 server_name（也可以在宝塔中新增站点/域名），并反代到发布站点端口。
+server {
+    listen 80;
+    server_name www.customer.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:28080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
 # HTTPS 建议由宝塔或现有 Nginx 管理：
 # 1. publish.example.com 申请普通证书，反代到 127.0.0.1:28081。
 # 2. *.sites.example.com 申请 DNS 验证的通配符证书，反代到 127.0.0.1:28080。
 # 3. 每个用户自定义域名需要在现有代理中申请证书，并反代到 127.0.0.1:28080。
+# 4. 若需要自动接入任意已验证域名和自动签发 HTTPS，请使用 Caddy 模式。

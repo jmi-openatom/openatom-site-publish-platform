@@ -43,6 +43,12 @@ docker compose ps
 并保留原始 `Host`。示例见
 [nginx-external.conf.example](nginx-external.conf.example)。
 
+> **自定义域名注意事项：** CNAME 只负责把域名解析到服务器，不会把 HTTP
+> `Host` 改成 CNAME 目标。使用宝塔或共享 Nginx 时，还必须把每个自定义域名
+> 加入站点的域名列表，反向代理到 `127.0.0.1:28080`，并传递原始 `Host`。
+> 否则请求会落到宝塔默认站点并显示“没有找到站点”。HTTPS 证书也需要在入口
+> Web 服务中为该自定义域名配置。
+
 ### 服务器没有其他 Web 入口
 
 设置：
@@ -68,6 +74,31 @@ publish.example.com    A    服务器公网 IP
 ```text
 www.customer.com       CNAME    project-slug.sites.example.com
 ```
+
+若使用外部 Nginx/宝塔，还需新增：
+
+```nginx
+server {
+    listen 80;
+    server_name www.customer.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:28080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+宝塔中对应操作为：将 `www.customer.com` 添加到网站域名列表，反向代理目标填写
+`http://127.0.0.1:28080`，发送域名选择 `$host`，然后为该域名申请证书并重载
+Nginx。若希望域名验证后自动接入并自动签发 HTTPS，应使用 Caddy 模式。
+
+当前生产域名 `sites.jmi-openatom.cn` 的宝塔拆分配置可直接参考
+[nginx-sites.jmi-openatom.cn.conf](nginx-sites.jmi-openatom.cn.conf)。该配置使用
+正则 `server_name` 接住未单独配置的自定义域名 HTTP 请求，但不会用平台通配证书
+冒充自定义域名证书。
 
 ## 三、GitHub Environment
 

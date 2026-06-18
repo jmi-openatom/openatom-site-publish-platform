@@ -75,6 +75,11 @@ www.example.com  CNAME  site-pfpph.sites.jmi-openatom.cn
 “验证解析”会读取真实 CNAME 记录，只有目标完全匹配时才激活域名。激活后，
 后端会根据 HTTP `Host` 自动找到项目并从域名根路径提供首页、静态资源与 SPA 回退。
 
+注意：CNAME 不会改写浏览器请求中的 `Host`。若生产环境前面还有宝塔或外部
+Nginx，必须同时把自定义域名绑定到入口站点、反代至后端发布端口并保留原始
+`Host`；只配置 CNAME 会落到入口服务器的默认站点。完整示例见
+[deploy/nginx-external.conf.example](deploy/nginx-external.conf.example)。
+
 HTTPS 推荐使用 [deploy/Caddyfile](deploy/Caddyfile)。Caddy 会调用平台的证书授权接口，
 只为已上线的平台域名和已验证的自定义域名签发证书：
 

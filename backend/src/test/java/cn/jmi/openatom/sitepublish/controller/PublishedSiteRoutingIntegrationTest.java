@@ -2,8 +2,11 @@ package cn.jmi.openatom.sitepublish.controller;
 
 import cn.jmi.openatom.sitepublish.entity.Deployment;
 import cn.jmi.openatom.sitepublish.entity.Site;
+import cn.jmi.openatom.sitepublish.entity.SiteDomain;
 import cn.jmi.openatom.sitepublish.mapper.DeploymentMapper;
+import cn.jmi.openatom.sitepublish.mapper.SiteDomainMapper;
 import cn.jmi.openatom.sitepublish.mapper.SiteMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -31,6 +34,7 @@ class PublishedSiteRoutingIntegrationTest {
     private static final long DEPLOYMENT_ID = 10_001L;
     private static final String SLUG = "routing-test";
     private static final String HOST = SLUG + ".sites.localhost";
+    private static final String CUSTOM_HOST = "www.routing-test.example";
 
     @Autowired
     private MockMvc mockMvc;
@@ -40,6 +44,9 @@ class PublishedSiteRoutingIntegrationTest {
 
     @Autowired
     private DeploymentMapper deploymentMapper;
+
+    @Autowired
+    private SiteDomainMapper siteDomainMapper;
 
     @TempDir
     Path outputDirectory;
@@ -51,6 +58,7 @@ class PublishedSiteRoutingIntegrationTest {
                 <html lang="zh-CN"><body>host-root-routing-ok</body></html>
                 """);
 
+        siteDomainMapper.delete(Wrappers.<SiteDomain>lambdaQuery().eq(SiteDomain::getSiteId, SITE_ID));
         deploymentMapper.deleteById(DEPLOYMENT_ID);
         siteMapper.deleteById(SITE_ID);
 
@@ -100,5 +108,27 @@ class PublishedSiteRoutingIntegrationTest {
 
         mockMvc.perform(get("/").header("Host", "unknown.sites.localhost"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void servesVerifiedCustomDomainWhenProxyPreservesOriginalHost() throws Exception {
+        LocalDateTime now = LocalDateTime.now();
+        SiteDomain binding = new SiteDomain();
+        binding.setSiteId(SITE_ID);
+        binding.setUserId(1L);
+        binding.setDomain(CUSTOM_HOST);
+        binding.setType("CUSTOM");
+        binding.setStatus("ACTIVE");
+        binding.setVerificationToken("site-verify-routing-test");
+        binding.setCreatedAt(now);
+        binding.setUpdatedAt(now);
+        siteDomainMapper.insert(binding);
+
+        mockMvc.perform(get("/").header("Host", CUSTOM_HOST))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("host-root-routing-ok")));
+
+        mockMvc.perform(get("/api/public/domains/allow").param("domain", CUSTOM_HOST))
+                .andExpect(status().isNoContent());
     }
 }

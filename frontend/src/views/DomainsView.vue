@@ -52,7 +52,7 @@ async function bind() {
 async function verify(domain: DomainBinding) {
   try {
     await api.post(`/domains/${domain.id}/verify`)
-    toast.show(`域名解析验证通过，可通过 https://${domain.domain}/ 访问`)
+    toast.show('域名解析验证通过，请确认入口代理已接入该域名')
     await load()
   } catch (error) {
     toast.show(errorMessage(error), 'error')
@@ -95,7 +95,7 @@ onMounted(load)
     <BaseModal
       :open="modalOpen"
       title="添加自定义域名"
-      description="域名保存后，请在 DNS 服务商处创建 CNAME 记录。"
+      description="保存后请配置 CNAME；使用宝塔或外部 Nginx 时，还需在入口代理中绑定该域名。"
       @close="modalOpen = false"
     >
       <div class="form-grid">
