@@ -49,6 +49,8 @@ services:
       TZ: ${TZ:-Asia/Shanghai}
     volumes:
       - site_storage:/app/data/storage
+    ports:
+      - "127.0.0.1:${BACKEND_BIND_PORT:-18080}:8080"
     depends_on:
       mysql:
         condition: service_healthy
@@ -72,6 +74,8 @@ services:
       args:
         VITE_SITE_PORT: ""
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_BIND_PORT:-18081}:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -88,6 +92,8 @@ services:
 
   caddy:
     image: caddy:2.10-alpine
+    profiles:
+      - caddy
     restart: unless-stopped
     environment:
       APP_DOMAIN: ${APP_DOMAIN}

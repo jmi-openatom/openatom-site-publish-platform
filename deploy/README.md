@@ -1,11 +1,11 @@
 # Docker 与 GitHub Actions 部署
 
-生产环境由四个容器组成：
+生产环境包含：
 
-- `caddy`：唯一公网入口，占用 `80/443`，自动签发 HTTPS 证书。
 - `frontend`：Vue 控制台与 `/api`、`/published` 反向代理。
 - `backend`：Spring Boot API、Host 路由和网站构建服务，镜像内包含 Node.js 20。
 - `mysql`：生产数据库。
+- `caddy`：可选公网入口，仅在 `INGRESS_MODE=caddy` 时启动。
 
 MySQL、发布文件和 Caddy 证书均保存在 Docker volume 中，更新容器不会清空数据。
 
@@ -30,7 +30,29 @@ docker compose up -d --build
 docker compose ps
 ```
 
-服务器防火墙和云安全组必须开放 TCP `80/443` 与 UDP `443`。
+### 已有 Nginx、OpenResty 或宝塔
+
+默认使用 `INGRESS_MODE=external`。容器只监听本机：
+
+```text
+控制台：127.0.0.1:18081
+发布站点：127.0.0.1:18080
+```
+
+在现有代理中将控制台域名反代到 `18081`，将站点通配域名反代到 `18080`，
+并保留原始 `Host`。示例见
+[nginx-external.conf.example](nginx-external.conf.example)。
+
+### 服务器没有其他 Web 入口
+
+设置：
+
+```env
+INGRESS_MODE=caddy
+```
+
+Caddy 将占用 `80/443` 并提供按需 HTTPS。服务器防火墙和云安全组必须开放
+TCP `80/443` 与 UDP `443`。
 
 ## 二、DNS
 
@@ -72,6 +94,9 @@ Environment variables：
 | 名称 | 示例 |
 | --- | --- |
 | `APP_DOMAIN` | `publish.example.com` |
+| `INGRESS_MODE` | 已有 Nginx 填 `external`；独占端口填 `caddy` |
+| `FRONTEND_BIND_PORT` | `18081` |
+| `BACKEND_BIND_PORT` | `18080` |
 | `SITE_PUBLIC_BASE_DOMAIN` | `sites.example.com` |
 | `SITE_CNAME_BASE_DOMAIN` | `sites.example.com` |
 | `MYSQL_DATABASE` | `site_publish` |
@@ -87,7 +112,7 @@ Environment variables：
 1. 所有分支和 PR 运行前端构建、后端测试与 Docker 镜像构建。
 2. `main` 分支通过所有检查后，通过 SSH 更新服务器代码。
 3. 工作流生成仅服务器可读的 `.env`，构建并更新容器。
-4. 部署完成后检查后端、前端、Caddy 配置和公网 HTTPS 健康接口。
+4. Caddy 模式检查公网 HTTPS；外部代理模式输出两个本机上游地址。
 
 生产 OAuth 回调地址会自动设置为：
 

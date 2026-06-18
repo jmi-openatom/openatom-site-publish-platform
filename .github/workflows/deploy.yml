@@ -79,6 +79,9 @@ jobs:
     environment: SERVER
     env:
       DEPLOY_PATH: ${{ secrets.SERVER_PATH }}
+      INGRESS_MODE: ${{ vars.INGRESS_MODE || 'external' }}
+      FRONTEND_BIND_PORT: ${{ vars.FRONTEND_BIND_PORT || '18081' }}
+      BACKEND_BIND_PORT: ${{ vars.BACKEND_BIND_PORT || '18080' }}
       APP_DOMAIN: ${{ vars.APP_DOMAIN }}
       ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
       MYSQL_DATABASE: ${{ vars.MYSQL_DATABASE || 'site_publish' }}
@@ -101,7 +104,7 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           fingerprint: ${{ secrets.SERVER_FINGERPRINT }}
-          envs: DEPLOY_PATH,APP_DOMAIN,ACME_EMAIL,MYSQL_DATABASE,MYSQL_USER,MYSQL_PASSWORD,MYSQL_ROOT_PASSWORD,OIDC_ISSUER,OIDC_CLIENT_ID,OIDC_CLIENT_SECRET,SITE_PUBLIC_BASE_DOMAIN,SITE_CNAME_BASE_DOMAIN,BUILD_TIMEOUT_SECONDS
+          envs: DEPLOY_PATH,INGRESS_MODE,FRONTEND_BIND_PORT,BACKEND_BIND_PORT,APP_DOMAIN,ACME_EMAIL,MYSQL_DATABASE,MYSQL_USER,MYSQL_PASSWORD,MYSQL_ROOT_PASSWORD,OIDC_ISSUER,OIDC_CLIENT_ID,OIDC_CLIENT_SECRET,SITE_PUBLIC_BASE_DOMAIN,SITE_CNAME_BASE_DOMAIN,BUILD_TIMEOUT_SECONDS
           script: |
             set -eu
 
@@ -115,9 +118,21 @@ jobs:
               fi
             }
 
-            for variable in APP_DOMAIN ACME_EMAIL MYSQL_PASSWORD MYSQL_ROOT_PASSWORD SITE_PUBLIC_BASE_DOMAIN SITE_CNAME_BASE_DOMAIN; do
+            for variable in APP_DOMAIN MYSQL_PASSWORD MYSQL_ROOT_PASSWORD SITE_PUBLIC_BASE_DOMAIN SITE_CNAME_BASE_DOMAIN; do
               require_env "$variable"
             done
+
+            case "$INGRESS_MODE" in
+              external|caddy) ;;
+              *)
+                echo "INGRESS_MODE must be external or caddy"
+                exit 1
+                ;;
+            esac
+
+            if [ "$INGRESS_MODE" = "caddy" ]; then
+              require_env ACME_EMAIL
+            fi
 
             cd "$DEPLOY_PATH" || {
               echo "Deployment directory not found: $DEPLOY_PATH"
@@ -141,6 +156,9 @@ jobs:
             umask 077
             {
               write_env COMPOSE_PROJECT_NAME site-publish-platform
+              write_env INGRESS_MODE "$INGRESS_MODE"
+              write_env FRONTEND_BIND_PORT "$FRONTEND_BIND_PORT"
+              write_env BACKEND_BIND_PORT "$BACKEND_BIND_PORT"
               write_env APP_DOMAIN "$APP_DOMAIN"
               write_env ACME_EMAIL "$ACME_EMAIL"
               write_env MYSQL_DATABASE "$MYSQL_DATABASE"
@@ -158,14 +176,25 @@ jobs:
               write_env TZ Asia/Shanghai
             } > .env
 
-            $COMPOSE_CMD config --quiet
-            $COMPOSE_CMD pull mysql caddy
-            $COMPOSE_CMD build --pull backend frontend
-            $COMPOSE_CMD up -d --remove-orphans
+            compose() {
+              if [ "$INGRESS_MODE" = "caddy" ]; then
+                $COMPOSE_CMD --profile caddy "$@"
+              else
+                $COMPOSE_CMD "$@"
+              fi
+            }
+
+            compose config --quiet
+            compose pull mysql
+            if [ "$INGRESS_MODE" = "caddy" ]; then
+              compose pull caddy
+            fi
+            compose build --pull backend frontend
+            compose up -d --remove-orphans
 
             BACKEND_READY=false
             for attempt in $(seq 1 36); do
-              if $COMPOSE_CMD exec -T backend curl -fsS http://127.0.0.1:8080/api/health >/dev/null 2>&1; then
+              if compose exec -T backend curl -fsS http://127.0.0.1:8080/api/health >/dev/null 2>&1; then
                 BACKEND_READY=true
                 break
               fi
@@ -174,23 +203,28 @@ jobs:
 
             if [ "$BACKEND_READY" != "true" ]; then
               echo "Backend did not become ready within 180 seconds."
-              $COMPOSE_CMD ps
-              $COMPOSE_CMD logs --tail=200 backend mysql
+              compose ps
+              compose logs --tail=200 backend mysql
               exit 1
             fi
 
-            $COMPOSE_CMD exec -T frontend wget -qO- http://127.0.0.1/healthz >/dev/null
-            $COMPOSE_CMD exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+            compose exec -T frontend wget -qO- http://127.0.0.1/healthz >/dev/null
 
-            for service in mysql backend frontend caddy; do
-              if ! $COMPOSE_CMD ps "$service" | grep -Eiq "Up|running"; then
+            SERVICES="mysql backend frontend"
+            if [ "$INGRESS_MODE" = "caddy" ]; then
+              compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+              SERVICES="$SERVICES caddy"
+            fi
+
+            for service in $SERVICES; do
+              if ! compose ps "$service" | grep -Eiq "Up|running"; then
                 echo "Service is not running: $service"
-                $COMPOSE_CMD logs --tail=150 "$service"
+                compose logs --tail=150 "$service"
                 exit 1
               fi
             done
 
-            if command -v curl >/dev/null 2>&1; then
+            if [ "$INGRESS_MODE" = "caddy" ] && command -v curl >/dev/null 2>&1; then
               PUBLIC_READY=false
               for attempt in $(seq 1 12); do
                 if curl -fsS "https://${APP_DOMAIN}/api/health" >/dev/null 2>&1; then
@@ -201,10 +235,16 @@ jobs:
               done
               if [ "$PUBLIC_READY" != "true" ]; then
                 echo "Public HTTPS health check failed: https://${APP_DOMAIN}/api/health"
-                $COMPOSE_CMD logs --tail=200 caddy frontend backend
+                compose logs --tail=200 caddy frontend backend
                 exit 1
               fi
             fi
 
-            $COMPOSE_CMD ps
+            if [ "$INGRESS_MODE" = "external" ]; then
+              echo "External ingress mode is active."
+              echo "Console upstream: http://127.0.0.1:${FRONTEND_BIND_PORT}"
+              echo "Published-site upstream: http://127.0.0.1:${BACKEND_BIND_PORT}"
+            fi
+
+            compose ps
             echo "Deployment finished successfully."
