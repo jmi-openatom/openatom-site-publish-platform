@@ -60,6 +60,10 @@ INGRESS_MODE=caddy
 Caddy 将占用 `80/443` 并提供按需 HTTPS。服务器防火墙和云安全组必须开放
 TCP `80/443` 与 UDP `443`。
 
+生产服务器上的 Caddy 使用 host 网络，以便继续访问宝塔原有的本机反向代理
+上游。`deploy/Caddyfile` 已包含当前 `oauth`、官网、LMS、活动、Bot 等域名路由；
+新增宝塔站点时也应同步补充 Caddy 路由。
+
 这是平台“验证域名后自动绑定并申请 SSL”的推荐且完整模式。域名验证通过后，
 后端会通过内部 TLS 握手触发 Caddy 签发证书；申请状态会显示在域名管理页面。
 证书由 Caddy 保存到 `caddy_data` volume，并自动续期。

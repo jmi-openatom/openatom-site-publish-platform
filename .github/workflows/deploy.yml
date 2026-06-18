@@ -208,7 +208,14 @@ jobs:
               service="$1"
               port="$2"
               container_id=$(compose ps -q "$service" 2>/dev/null || true)
-              [ -n "$container_id" ] && docker port "$container_id" 2>/dev/null | grep -q ":$port$"
+              if [ -z "$container_id" ]; then
+                return 1
+              fi
+              if [ "$service" = "caddy" ] &&
+                 [ "$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$container_id" 2>/dev/null)" = "host" ]; then
+                return 0
+              fi
+              docker port "$container_id" 2>/dev/null | grep -q ":$port$"
             }
 
             check_bind_port() {

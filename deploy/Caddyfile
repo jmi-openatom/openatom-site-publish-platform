@@ -1,14 +1,59 @@
 {
 	email {$ACME_EMAIL}
 	on_demand_tls {
-		ask http://backend:8080/api/public/domains/allow
+		ask http://127.0.0.1:28080/api/public/domains/allow
 	}
 }
 
 {$APP_DOMAIN} {
 	encode zstd gzip
 
-	reverse_proxy frontend:80
+	reverse_proxy 127.0.0.1:28081
+}
+
+oauth.jmi-openatom.cn, www.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:18080
+}
+
+lms.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:18091
+}
+
+exam.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3010
+}
+
+activity.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8080
+}
+
+activitie.jmi-liuying.club {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:4588
+}
+
+game.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3001
+}
+
+napcat.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:6099
+}
+
+bot.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:6185
+}
+
+api.jmi-openatom.cn {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8921
 }
 
 https:// {
@@ -19,7 +64,7 @@ https:// {
 	encode zstd gzip
 	header Strict-Transport-Security "max-age=31536000"
 
-	reverse_proxy backend:8080 {
+	reverse_proxy 127.0.0.1:28080 {
 		header_up Host {host}
 		header_up X-Forwarded-Proto https
 	}

@@ -98,13 +98,13 @@ services:
     profiles:
       - caddy
     restart: unless-stopped
+    network_mode: host
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
     volumes:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -114,8 +114,6 @@ services:
         condition: service_healthy
       frontend:
         condition: service_healthy
-    networks:
-      - site_publish
 
 volumes:
   mysql_data:
