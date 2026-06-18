@@ -11,6 +11,7 @@ interface AuthConfig {
 }
 
 const storedUser = localStorage.getItem('site_publish_user')
+const adminRoles = new Set(['site_admin', 'admin', 'super_admin'])
 const state = reactive<{
   user: User | null
   initialized: boolean
@@ -118,6 +119,9 @@ export function useAuth() {
     user: computed(() => state.user),
     config: computed(() => state.config),
     isAuthenticated: computed(() => Boolean(state.user && localStorage.getItem('site_publish_token'))),
+    isAdmin: computed(() => Boolean(
+      state.user?.roles.some((role) => adminRoles.has(role.trim().toLowerCase())),
+    )),
     initialize,
     loginWithOAuth,
     finishOAuth,

@@ -73,7 +73,15 @@ public class SiteService {
 
     @Transactional
     public void delete(Long id) {
-        Site site = requireOwned(id);
+        deleteSite(requireOwned(id));
+    }
+
+    @Transactional
+    public void deleteAsAdmin(Site site) {
+        deleteSite(site);
+    }
+
+    private void deleteSite(Site site) {
         deploymentMapper.delete(Wrappers.<Deployment>lambdaQuery().eq(Deployment::getSiteId, site.getId()));
         domainMapper.delete(Wrappers.lambdaQuery(cn.jmi.openatom.sitepublish.entity.SiteDomain.class)
                 .eq(cn.jmi.openatom.sitepublish.entity.SiteDomain::getSiteId, site.getId()));

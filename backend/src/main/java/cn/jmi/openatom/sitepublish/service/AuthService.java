@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -180,7 +181,7 @@ public class AuthService {
         user.setDisplayName(firstText(profile, "name", "nickname", "preferred_username", "username"));
         user.setEmail(email);
         user.setAvatar(firstText(profile, "avatar", "picture"));
-        user.setRoles(listText(profile.get("roles")));
+        user.setRoles(mergeProviderRoles(user.getRoles(), listText(profile.get("roles"))));
         user.setUpdatedAt(LocalDateTime.now());
 
         if (user.getId() == null) {
@@ -271,6 +272,14 @@ public class AuthService {
             return String.join(",", list.stream().map(String::valueOf).toList());
         }
         return value == null ? "" : String.valueOf(value);
+    }
+
+    static String mergeProviderRoles(String existingRoles, String providerRoles) {
+        LinkedHashSet<String> merged = AdminAccessService.parseRoles(providerRoles);
+        if (AdminAccessService.parseRoles(existingRoles).contains("site_admin")) {
+            merged.add("site_admin");
+        }
+        return String.join(",", merged);
     }
 
     private record PendingOAuth(String redirectUri, String nonce, Instant expiresAt) {

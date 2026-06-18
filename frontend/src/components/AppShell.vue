@@ -8,6 +8,7 @@ import {
   PhList,
   PhMagnifyingGlass,
   PhSignOut,
+  PhShieldCheck,
   PhSquaresFour,
   PhStack,
   PhX,
@@ -29,11 +30,12 @@ const auth = useAuth()
 const userMenuOpen = ref(false)
 const mobileMenuOpen = ref(false)
 
-const navigation = [
+const navigation = computed(() => [
   { label: '项目', to: '/' },
   { label: '部署', to: '/deployments' },
   { label: '域名', to: '/domains' },
-]
+  ...(auth.isAdmin.value ? [{ label: '管理', to: '/admin' }] : []),
+])
 
 const initials = computed(() => auth.user.value?.displayName?.slice(0, 1) || 'S')
 
@@ -92,6 +94,9 @@ async function logout() {
                 <strong>{{ auth.user.value?.displayName }}</strong>
                 <span>{{ auth.user.value?.email }}</span>
               </div>
+              <RouterLink v-if="auth.isAdmin.value" to="/admin" @click="userMenuOpen = false">
+                <PhShieldCheck :size="17" />管理后台
+              </RouterLink>
               <button @click="logout"><PhSignOut :size="17" />退出登录</button>
             </div>
           </Transition>

@@ -6,6 +6,7 @@ import OAuthCallbackView from '@/views/OAuthCallbackView.vue'
 import DeploymentsView from '@/views/DeploymentsView.vue'
 import DomainsView from '@/views/DomainsView.vue'
 import SiteDetailView from '@/views/SiteDetailView.vue'
+import AdminView from '@/views/AdminView.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,6 +16,7 @@ const router = createRouter({
     { path: '/', name: 'dashboard', component: DashboardView },
     { path: '/deployments', name: 'deployments', component: DeploymentsView },
     { path: '/domains', name: 'domains', component: DomainsView },
+    { path: '/admin', name: 'admin', component: AdminView, meta: { adminOnly: true } },
     { path: '/sites/:id', name: 'site-detail', component: SiteDetailView },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
@@ -27,6 +29,9 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   if (to.name === 'login' && auth.isAuthenticated.value) {
+    return { name: 'dashboard' }
+  }
+  if (to.meta.adminOnly && !auth.isAdmin.value) {
     return { name: 'dashboard' }
   }
 })

@@ -73,3 +73,78 @@ export interface DomainBinding {
   createdAt: string
   updatedAt: string
 }
+
+export interface AdminSummary {
+  users: number
+  sites: number
+  onlineSites: number
+  deployments: number
+  successfulDeployments: number
+  failedDeployments: number
+  domains: number
+  activeDomains: number
+}
+
+export interface AdminUser {
+  id: number
+  username?: string
+  displayName?: string
+  email?: string
+  avatar?: string
+  roles: string[]
+  admin: boolean
+  siteCount: number
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminSite {
+  id: number
+  name: string
+  slug: string
+  framework: string
+  status: SiteStatus
+  defaultDomain: string
+  customDomain?: string
+  ownerId: number
+  ownerName: string
+  ownerEmail?: string
+  updatedAt: string
+}
+
+export interface AdminDomain {
+  id: number
+  siteId: number
+  siteName?: string
+  ownerId: number
+  ownerName: string
+  domain: string
+  status: 'ACTIVE' | 'PENDING'
+  cnameTarget: string
+  sslStatus: DomainBinding['sslStatus']
+  sslMessage: string
+  updatedAt: string
+}
+
+export interface AdminDeployment {
+  id: number
+  siteId: number
+  siteName?: string
+  ownerId: number
+  ownerName: string
+  status: DeploymentStatus
+  environment?: string
+  commitHash?: string
+  sourceFilename?: string
+  durationSeconds?: number
+  createdAt: string
+}
+
+export interface AdminDashboard {
+  currentUserId: number
+  summary: AdminSummary
+  users: AdminUser[]
+  sites: AdminSite[]
+  domains: AdminDomain[]
+  deployments: AdminDeployment[]
+}

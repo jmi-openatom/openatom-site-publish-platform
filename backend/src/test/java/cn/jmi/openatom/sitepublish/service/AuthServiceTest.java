@@ -50,6 +50,14 @@ class AuthServiceTest {
                 .hasMessage("OAuth 回调地址不在允许列表中");
     }
 
+    @Test
+    void preservesLocallyGrantedSiteAdminRoleAcrossOauthLogin() {
+        assertThat(AuthService.mergeProviderRoles("member,site_admin", "member"))
+                .isEqualTo("member,site_admin");
+        assertThat(AuthService.mergeProviderRoles("member", "member"))
+                .isEqualTo("member");
+    }
+
     private AuthService serviceWithRedirect(String redirectUri) {
         OidcProperties properties = new OidcProperties(
                 "https://oauth.jmi-openatom.cn/api/v1",
