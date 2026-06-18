@@ -1,0 +1,119 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-site_publish}
+      MYSQL_USER: ${MYSQL_USER:-site_publish}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/src/main/resources/schema-mysql.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - site_publish
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      SERVER_PORT: 8080
+      MYSQL_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-site_publish}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+      MYSQL_USERNAME: ${MYSQL_USER:-site_publish}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      OIDC_ISSUER: ${OIDC_ISSUER:-https://oauth.jmi-openatom.cn/api/v1}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-site-platform}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI}
+      DEV_LOGIN_ENABLED: "false"
+      SITE_PUBLIC_BASE_DOMAIN: ${SITE_PUBLIC_BASE_DOMAIN}
+      SITE_CNAME_BASE_DOMAIN: ${SITE_CNAME_BASE_DOMAIN}
+      SITE_STORAGE_ROOT: /app/data/storage
+      RUN_FRONTEND_BUILDS: ${RUN_FRONTEND_BUILDS:-true}
+      BUILD_TIMEOUT_SECONDS: ${BUILD_TIMEOUT_SECONDS:-180}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - site_storage:/app/data/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -fsS
+        - http://127.0.0.1:8080/api/health
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - site_publish
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_SITE_PORT: ""
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1/healthz >/dev/null || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    networks:
+      - site_publish
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    networks:
+      - site_publish
+
+volumes:
+  mysql_data:
+  site_storage:
+  caddy_data:
+  caddy_config:
+
+networks:
+  site_publish:
+    driver: bridge

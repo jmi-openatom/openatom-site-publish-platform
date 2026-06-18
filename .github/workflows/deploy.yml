@@ -1,0 +1,210 @@
+name: CI/CD Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches:
+      - "**"
+
+concurrency:
+  group: site-publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  frontend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  backend-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: temurin
+          cache: maven
+      - name: Run backend tests
+        working-directory: backend
+        run: ./mvnw -B test
+
+  docker-check:
+    runs-on: ubuntu-latest
+    env:
+      APP_DOMAIN: publish.example.com
+      ACME_EMAIL: ci@example.com
+      MYSQL_DATABASE: site_publish
+      MYSQL_USER: site_publish
+      MYSQL_PASSWORD: ci-mysql-password
+      MYSQL_ROOT_PASSWORD: ci-root-password
+      OIDC_REDIRECT_URI: https://publish.example.com/auth/callback
+      SITE_PUBLIC_BASE_DOMAIN: sites.example.com
+      SITE_CNAME_BASE_DOMAIN: sites.example.com
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+      - name: Build application images
+        run: docker compose build backend frontend
+
+  deploy:
+    needs:
+      - frontend-check
+      - backend-check
+      - docker-check
+    if: |
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: SERVER
+    env:
+      DEPLOY_PATH: ${{ secrets.SERVER_PATH }}
+      APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+      ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
+      MYSQL_DATABASE: ${{ vars.MYSQL_DATABASE || 'site_publish' }}
+      MYSQL_USER: ${{ vars.MYSQL_USER || 'site_publish' }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+      OIDC_ISSUER: ${{ vars.OIDC_ISSUER || 'https://oauth.jmi-openatom.cn/api/v1' }}
+      OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID || 'site-platform' }}
+      OIDC_CLIENT_SECRET: ${{ secrets.OIDC_CLIENT_SECRET }}
+      SITE_PUBLIC_BASE_DOMAIN: ${{ vars.SITE_PUBLIC_BASE_DOMAIN || 'sites.jmi-openatom.cn' }}
+      SITE_CNAME_BASE_DOMAIN: ${{ vars.SITE_CNAME_BASE_DOMAIN || 'sites.jmi-openatom.cn' }}
+      BUILD_TIMEOUT_SECONDS: ${{ vars.BUILD_TIMEOUT_SECONDS || '180' }}
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          fingerprint: ${{ secrets.SERVER_FINGERPRINT }}
+          envs: DEPLOY_PATH,APP_DOMAIN,ACME_EMAIL,MYSQL_DATABASE,MYSQL_USER,MYSQL_PASSWORD,MYSQL_ROOT_PASSWORD,OIDC_ISSUER,OIDC_CLIENT_ID,OIDC_CLIENT_SECRET,SITE_PUBLIC_BASE_DOMAIN,SITE_CNAME_BASE_DOMAIN,BUILD_TIMEOUT_SECONDS
+          script: |
+            set -eu
+
+            DEPLOY_PATH="${DEPLOY_PATH:-/www/wwwroot/site-publish-platform}"
+
+            require_env() {
+              eval "value=\${$1:-}"
+              if [ -z "$value" ]; then
+                echo "Missing required deployment variable: $1"
+                exit 1
+              fi
+            }
+
+            for variable in APP_DOMAIN ACME_EMAIL MYSQL_PASSWORD MYSQL_ROOT_PASSWORD SITE_PUBLIC_BASE_DOMAIN SITE_CNAME_BASE_DOMAIN; do
+              require_env "$variable"
+            done
+
+            cd "$DEPLOY_PATH" || {
+              echo "Deployment directory not found: $DEPLOY_PATH"
+              exit 1
+            }
+
+            git fetch origin main
+            git reset --hard origin/main
+
+            if command -v docker-compose >/dev/null 2>&1; then
+              COMPOSE_CMD="docker-compose"
+            else
+              COMPOSE_CMD="docker compose"
+            fi
+
+            write_env() {
+              escaped=$(printf '%s' "$2" | sed "s/'/\\\\'/g")
+              printf "%s='%s'\n" "$1" "$escaped"
+            }
+
+            umask 077
+            {
+              write_env COMPOSE_PROJECT_NAME site-publish-platform
+              write_env APP_DOMAIN "$APP_DOMAIN"
+              write_env ACME_EMAIL "$ACME_EMAIL"
+              write_env MYSQL_DATABASE "$MYSQL_DATABASE"
+              write_env MYSQL_USER "$MYSQL_USER"
+              write_env MYSQL_PASSWORD "$MYSQL_PASSWORD"
+              write_env MYSQL_ROOT_PASSWORD "$MYSQL_ROOT_PASSWORD"
+              write_env OIDC_ISSUER "$OIDC_ISSUER"
+              write_env OIDC_CLIENT_ID "$OIDC_CLIENT_ID"
+              write_env OIDC_CLIENT_SECRET "$OIDC_CLIENT_SECRET"
+              write_env OIDC_REDIRECT_URI "https://${APP_DOMAIN}/auth/callback"
+              write_env SITE_PUBLIC_BASE_DOMAIN "$SITE_PUBLIC_BASE_DOMAIN"
+              write_env SITE_CNAME_BASE_DOMAIN "$SITE_CNAME_BASE_DOMAIN"
+              write_env RUN_FRONTEND_BUILDS true
+              write_env BUILD_TIMEOUT_SECONDS "$BUILD_TIMEOUT_SECONDS"
+              write_env TZ Asia/Shanghai
+            } > .env
+
+            $COMPOSE_CMD config --quiet
+            $COMPOSE_CMD pull mysql caddy
+            $COMPOSE_CMD build --pull backend frontend
+            $COMPOSE_CMD up -d --remove-orphans
+
+            BACKEND_READY=false
+            for attempt in $(seq 1 36); do
+              if $COMPOSE_CMD exec -T backend curl -fsS http://127.0.0.1:8080/api/health >/dev/null 2>&1; then
+                BACKEND_READY=true
+                break
+              fi
+              sleep 5
+            done
+
+            if [ "$BACKEND_READY" != "true" ]; then
+              echo "Backend did not become ready within 180 seconds."
+              $COMPOSE_CMD ps
+              $COMPOSE_CMD logs --tail=200 backend mysql
+              exit 1
+            fi
+
+            $COMPOSE_CMD exec -T frontend wget -qO- http://127.0.0.1/healthz >/dev/null
+            $COMPOSE_CMD exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+            for service in mysql backend frontend caddy; do
+              if ! $COMPOSE_CMD ps "$service" | grep -Eiq "Up|running"; then
+                echo "Service is not running: $service"
+                $COMPOSE_CMD logs --tail=150 "$service"
+                exit 1
+              fi
+            done
+
+            if command -v curl >/dev/null 2>&1; then
+              PUBLIC_READY=false
+              for attempt in $(seq 1 12); do
+                if curl -fsS "https://${APP_DOMAIN}/api/health" >/dev/null 2>&1; then
+                  PUBLIC_READY=true
+                  break
+                fi
+                sleep 5
+              done
+              if [ "$PUBLIC_READY" != "true" ]; then
+                echo "Public HTTPS health check failed: https://${APP_DOMAIN}/api/health"
+                $COMPOSE_CMD logs --tail=200 caddy frontend backend
+                exit 1
+              fi
+            fi
+
+            $COMPOSE_CMD ps
+            echo "Deployment finished successfully."

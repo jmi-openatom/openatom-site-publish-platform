@@ -1,0 +1,24 @@
+{
+	email {$ACME_EMAIL}
+	on_demand_tls {
+		ask http://backend:8080/api/public/domains/allow
+	}
+}
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+
+	reverse_proxy frontend:80
+}
+
+https:// {
+	tls {
+		on_demand
+	}
+
+	encode zstd gzip
+
+	reverse_proxy backend:8080 {
+		header_up Host {host}
+	}
+}

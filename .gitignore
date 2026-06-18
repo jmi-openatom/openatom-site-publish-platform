@@ -1,0 +1,17 @@
+.DS_Store
+.idea/
+.vscode/
+*.iml
+/.env
+/.env.production
+/data/
+
+backend/target/
+backend/data/
+backend/.mvn/apache-maven-*/
+
+frontend/node_modules/
+frontend/dist/
+frontend/.npm-cache/
+
+*.log

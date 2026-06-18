@@ -1,0 +1,55 @@
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: site-publish-platform
+  datasource:
+    url: jdbc:h2:file:./data/site-publish;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      encoding: UTF-8
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+sa-token:
+  token-name: satoken
+  timeout: 604800
+  active-timeout: 3600
+  is-concurrent: true
+  is-share: false
+  token-style: random-64
+  is-log: false
+
+app:
+  oauth:
+    issuer: ${OIDC_ISSUER:https://oauth.jmi-openatom.cn/api/v1}
+    client-id: ${OIDC_CLIENT_ID:site-platform}
+    client-secret: ${OIDC_CLIENT_SECRET:}
+    scope: openid profile email roles permissions
+    redirect-uri: ${OIDC_REDIRECT_URI:http://localhost:5173/auth/callback}
+    dev-login-enabled: ${DEV_LOGIN_ENABLED:false}
+  domains:
+    public-base-domain: ${SITE_PUBLIC_BASE_DOMAIN:sites.localhost}
+    cname-base-domain: ${SITE_CNAME_BASE_DOMAIN:sites.jmi-openatom.cn}
+  storage:
+    root: ${SITE_STORAGE_ROOT:./data/storage}
+    run-frontend-builds: ${RUN_FRONTEND_BUILDS:true}
+    build-timeout-seconds: ${BUILD_TIMEOUT_SECONDS:180}
