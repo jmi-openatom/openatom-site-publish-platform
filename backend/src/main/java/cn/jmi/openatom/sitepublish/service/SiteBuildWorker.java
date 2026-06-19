@@ -20,6 +20,7 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -163,11 +164,16 @@ public class SiteBuildWorker {
     }
 
     private void unzipSecurely(Path zipPath, Path target) throws IOException {
+        Path normalizedTarget = target.toAbsolutePath().normalize();
+        int extractedEntries = 0;
         try (ZipInputStream input = new ZipInputStream(Files.newInputStream(zipPath))) {
             ZipEntry entry;
             while ((entry = input.getNextEntry()) != null) {
-                Path destination = target.resolve(entry.getName()).normalize();
-                if (!destination.startsWith(target)) {
+                if (isIgnoredZipEntry(entry.getName())) {
+                    continue;
+                }
+                Path destination = normalizedTarget.resolve(entry.getName()).normalize();
+                if (!destination.startsWith(normalizedTarget)) {
                     throw new IOException("ZIP 包含不安全路径");
                 }
                 if (entry.isDirectory()) {
@@ -176,8 +182,23 @@ public class SiteBuildWorker {
                     Files.createDirectories(destination.getParent());
                     Files.copy(input, destination, StandardCopyOption.REPLACE_EXISTING);
                 }
+                extractedEntries++;
             }
         }
+        if (extractedEntries == 0) {
+            throw new IOException("ZIP 压缩包为空或不包含有效项目文件");
+        }
+    }
+
+    private boolean isIgnoredZipEntry(String entryName) {
+        String normalized = entryName.replace('\\', '/');
+        for (String segment : normalized.split("/")) {
+            String lower = segment.toLowerCase(Locale.ROOT);
+            if ("__macosx".equals(lower) || ".ds_store".equals(lower) || segment.startsWith("._")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Path collapseSingleDirectory(Path directory) throws IOException {
