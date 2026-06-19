@@ -41,13 +41,13 @@ async function devLogin() {
 <template>
   <main class="login-page">
     <section class="login-intro">
-      <div class="login-brand"><span class="brand-icon"><PhStack :size="23" weight="fill" /></span>Site Publish</div>
+      <div class="login-brand"><img src="../../public/logo.png" width="50" alt="">JMI-OPENATOM 发布平台</div>
       <div class="login-copy">
         <span class="eyebrow">OPENATOM / WEBSITE DELIVERY</span>
         <h1>把网站交付，<br />变成一件小事.</h1>
         <p>上传 HTML、Vue 或 React 项目，平台会替你完成构建、发布和域名管理。</p>
         <ul>
-          <li><PhCheckCircle :size="19" weight="fill" />OpenAtom 统一身份认证</li>
+          <li><PhCheckCircle :size="19" weight="fill" />JMI-OPENATOM 统一身份认证</li>
           <li><PhCode :size="19" />自动识别并构建前端项目</li>
           <li><PhGlobe :size="19" />默认域名与自定义 CNAME</li>
         </ul>
@@ -56,21 +56,13 @@ async function devLogin() {
     </section>
     <section class="login-form-side">
       <div class="login-card">
-        <div class="login-card__icon"><PhStack :size="27" weight="fill" /></div>
-        <h2>登录 Site Publish</h2>
-        <p>使用你的 OpenAtom 账号继续。</p>
+        <div class=""><img src="../../public/logo.png" width="50" alt=""></div>
+        <h2>登录 发布平台</h2>
+        <p>使用你的 JMI-OPENATOM 账号继续。</p>
         <button class="button button--primary button--large button--full" :disabled="busy" @click="oauthLogin">
           <PhSpinnerGap v-if="busy" class="spin" :size="18" />
-          使用 OpenAtom 登录
+          使用 JMI-OPENATOM 登录
           <PhArrowRight v-if="!busy" :size="18" />
-        </button>
-        <button
-          v-if="auth.config.value?.devLoginEnabled"
-          class="button button--secondary button--full"
-          :disabled="busy"
-          @click="devLogin"
-        >
-          本地开发登录
         </button>
         <small>登录即表示你同意平台仅使用授权范围内的账号信息。</small>
       </div>

@@ -54,8 +54,8 @@ async function logout() {
     <header class="topbar">
       <div class="topbar__brand">
         <RouterLink to="/" class="brand-mark" aria-label="Site Publish 首页">
-          <span class="brand-icon"><PhStack :size="23" weight="fill" /></span>
-          <strong>Site Publish</strong>
+          <img src="../../public/logo.png"  width="50">
+          <strong>JMI-OPENATOM 发布平台</strong>
         </RouterLink>
       </div>
 
